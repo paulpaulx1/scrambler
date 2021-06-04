@@ -8,7 +8,7 @@ import * as Tone from 'tone';
 import { FrequencyEnvelope, Synth } from 'tone';
 
 function App() {
-  const [count, setCount] = useState(10);
+  const [count, setCount] = useState(1);
   const [state, setState] = useState({
     loading: false,
     error: null,
