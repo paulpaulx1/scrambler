@@ -11,6 +11,5 @@ export const scrambler = (string) => {
       .map((x) => shuffle(x))
       .join(' ') +
     last;
-  console.log(string);
   return string;
 };

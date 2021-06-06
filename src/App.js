@@ -1,43 +1,42 @@
 import { useState, useEffect, useRef } from 'react';
 import { scrambler, fetchData, formatter } from './utils';
-import uuid from 'react-uuid';
-import { styler } from './utils/blockHolder';
-import { Rows, Winner } from './components';
-import { synth } from './utils/sound';
-import * as Tone from 'tone';
-import { FrequencyEnvelope, Synth } from 'tone';
+import { Winner, Grid, Next } from './components';
+import { winSound, correctSound, wrongSound, nextSound } from './utils/sound';
 
 function App() {
-  const [count, setCount] = useState(1);
+  const [level, setlevel] = useState(6);
+  const [retry, setRetry] = useState(false);
   const [state, setState] = useState({
     loading: false,
     error: null,
     sentence: [],
   });
-  const score = useRef(0);
-  const keysPressed = useRef(0);
+
+  const levelBlocksCorrect = useRef(0);
+  const numKeysPressed = useRef(0);
   const gameBlocks = useRef(null);
-  const sentenceRef = useRef(null);
+  const correctSentenceRef = useRef(null);
   const scrambledRef = useRef(null);
   const scoreRef = useRef(null);
   const nextButtonRef = useRef(null);
-  let { current: runningScore } = score;
+
+  let { current: currentBlocksCorrect } = levelBlocksCorrect;
 
   useEffect(() => {
     async function setData() {
       try {
-        setState({ loading: true, sentence: '', error: null, count: count });
-        const { data } = await fetchData(count);
+        setState({ loading: true, sentence: '', error: null, level: level });
+        const { data } = await fetchData(level);
         setState({
           loading: false,
           sentence: data,
           error: null,
         });
       } catch (err) {
-        setState({ loading: false, sentence: [], error: err, count: count });
+        setState({ loading: false, sentence: [], error: err, level: level });
       }
     }
-    if (count < 11) {
+    if (level < 11) {
       setData();
     }
     window.addEventListener('keypress', onKey);
@@ -45,103 +44,109 @@ function App() {
       gameBlocks.current = [];
       window.removeEventListener('keypress', onKey);
     };
-  }, [count]);
+  }, [level, retry]);
 
   const { loading, error, sentence } = state;
   const { data } = sentence;
 
   const onKey = (e) => {
-    //if user got all the of letters correct
-    if (
-      runningScore === gameBlocks.current.length - 1 &&
-      gameBlocks.current[keysPressed.current]
-    ) {
-      if (count === 10) {
-        synth.triggerAttackRelease('C6', '10n');
-        setCount(count + 1);
-        return;
+    let numberOfAllBlocks = gameBlocks.current.length - 1;
+    let levelBlocks = gameBlocks.current;
+    const correctSentence = correctSentenceRef.current;
+    let currentNumKeysPressed = numKeysPressed.current;
+    numKeysPressed.current = numKeysPressed.current + 1;
+    //all the blocks have letters
+    if (currentNumKeysPressed > numberOfAllBlocks) {
+      //restart level if user didn't get all the letters correct
+      console.log(currentBlocksCorrect, numberOfAllBlocks);
+      if (currentBlocksCorrect < numberOfAllBlocks + 1) {
+        numKeysPressed.current = 0;
+        alert('Try this level again :0');
+        setRetry(!retry);
       }
-      synth.triggerAttackRelease('C3', '10n');
-      gameBlocks.current[keysPressed.current].innerText = e.key;
-      gameBlocks.current[keysPressed.current].style.background = '#4caf50';
-      //show next
-
-      nextButtonRef.current.style.display = 'flex';
       return;
     }
-    // if user key matches correct letter of sentence
-    if (e.key === sentenceRef.current[keysPressed.current]) {
-      synth.triggerAttackRelease('C3', '10n');
-      runningScore = runningScore + 1;
-      gameBlocks.current[keysPressed.current].style.background = '#4caf50';
+
+    //user got all the of letters correct
+    //level is complete, show next button
+    if (
+      currentBlocksCorrect === numberOfAllBlocks &&
+      e.key === correctSentence[currentNumKeysPressed]
+    ) {
+      //user got every level correct and wins the game
+      if (level === 10) {
+        winSound();
+        setlevel(level + 1);
+        return;
+      }
+
+      correctSound();
+      levelBlocks[currentNumKeysPressed].innerText = e.key;
+      levelBlocks[currentNumKeysPressed].style.background = '#4caf50';
+
+      //show next button when level is completely correct
+      nextButtonRef.current.style.display = 'flex';
+      numKeysPressed.current = numKeysPressed.current + 1;
+      return;
     }
-    //puts user key output into block
-    if (gameBlocks.current[keysPressed.current]) {
-      gameBlocks.current[keysPressed.current].innerText = e.key;
-      keysPressed.current++;
+
+    // if user key matches correct letter of sentence
+    if (e.key === correctSentence[currentNumKeysPressed]) {
+      correctSound();
+      currentBlocksCorrect = currentBlocksCorrect + 1;
+      levelBlocks[currentNumKeysPressed].style.background = '#4caf50';
+    }
+
+    //puts key into corresponding block
+    if (levelBlocks[currentNumKeysPressed]) {
+      if (e.key !== correctSentence[currentNumKeysPressed]) {
+        wrongSound();
+      }
+      levelBlocks[currentNumKeysPressed].innerText = e.key;
+      // numKeysPressed.current++;
     } else {
-      //resets record of keys pressed on reload
-      keysPressed.current = 0;
+      //rerenders, reset number of keys pressed
+      numKeysPressed.current = 0;
       return;
     }
   };
 
   let format;
+  //splits sentence up into mappable format
   if (data) {
     format = formatter(data);
-    sentenceRef.current = data.sentence;
+    correctSentenceRef.current = data.sentence;
     scrambledRef.current = scrambler(data.sentence);
   }
 
+  //re-render and reset when you click the 'next' button
   const handleNext = () => {
-    runningScore = 0;
-    keysPressed.current = 0;
+    currentBlocksCorrect = 0;
+    numKeysPressed.current = 0;
     gameBlocks.current = null;
-    setCount(count + 1);
+    setlevel(level + 1);
     nextButtonRef.current.style.display = 'none';
-    synth.triggerAttackRelease('C6', '20n');
+    nextSound();
   };
 
-  return count === 11 ? (
+  return level === 11 ? (
     <Winner />
   ) : (
     <>
+      {loading ? 'Loading...' : error ? error.message : null}
       <div className='game_wrapper'>
         <div className='text_headings'>
-          {loading ? 'Loading...' : error ? error.message : null}
           <h1 className={'scramble_header'}>{scrambledRef.current}</h1>
-          <div ref={sentenceRef} style={{ display: 'none' }}>
-            {data && data.sentence}
-          </div>
           <h2>Guess the sentence! Starting typing</h2>
           <h2>the yellow blocks are meant for spaces</h2>
-          <h1 ref={scoreRef}>Score: {count - 1}</h1>
+          <h1 ref={scoreRef}>Score: {level - 1}</h1>
         </div>
-        <div className='block_wrapper'>
-          {format &&
-            format.map((word, i) => (
-              <div key={uuid()} style={styler}>
-                <Rows
-                  key={gameBlocks}
-                  word={word}
-                  forwardedRef={gameBlocks}
-                  num={i}
-                  keysPressed={keysPressed}
-                />
-              </div>
-            ))}
-        </div>{' '}
+        <div className='grid_wrapper'>
+          {format && <Grid format={format} forwardedRef={gameBlocks} />}
+        </div>
       </div>
-      {count < 9 && (
-        <div
-          ref={nextButtonRef}
-          className={'next_button_div'}
-          style={{ justifyContent: 'center', display: 'none' }}
-        >
-          <button className='next_button' onClick={handleNext}>
-            Next
-          </button>
-        </div>
+      {level < 10 && (
+        <Next forwardedRef={nextButtonRef} handleNext={handleNext} />
       )}
     </>
   );

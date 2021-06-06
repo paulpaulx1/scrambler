@@ -1,5 +1,6 @@
-import { Scramble } from './Scramble';
-import { Rows } from './Rows';
+import { Row } from './Row';
 import { Winner } from './Winner';
+import { Grid } from './Grid';
+import { Next } from './Next';
 
-export { Scramble, Rows, Winner };
+export { Row, Winner, Grid, Next };

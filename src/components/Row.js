@@ -1,7 +1,7 @@
 import { styles } from '../utils/stylesblocks';
 import uuid from 'react-uuid';
 
-export const Rows = ({ word, forwardedRef, num }) => {
+export const Row = ({ word, forwardedRef, num }) => {
   if (forwardedRef.current === null || !forwardedRef.length) {
     forwardedRef.current = [];
   }
