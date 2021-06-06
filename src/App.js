@@ -4,7 +4,7 @@ import { Winner, Grid, Next } from './components';
 import { winSound, correctSound, wrongSound, nextSound } from './utils/sound';
 
 function App() {
-  const [level, setlevel] = useState(6);
+  const [level, setlevel] = useState(1);
   const [retry, setRetry] = useState(false);
   const [state, setState] = useState({
     loading: false,
@@ -55,7 +55,8 @@ function App() {
     const correctSentence = correctSentenceRef.current;
     let currentNumKeysPressed = numKeysPressed.current;
     numKeysPressed.current = numKeysPressed.current + 1;
-    //all the blocks have letters
+
+    //when all the blocks have letters
     if (currentNumKeysPressed > numberOfAllBlocks) {
       //restart level if user didn't get all the letters correct
       console.log(currentBlocksCorrect, numberOfAllBlocks);
