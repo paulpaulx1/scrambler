@@ -59,7 +59,6 @@ function App() {
     //when all the blocks have letters
     if (currentNumKeysPressed > numberOfAllBlocks) {
       //restart level if user didn't get all the letters correct
-      console.log(currentBlocksCorrect, numberOfAllBlocks);
       if (currentBlocksCorrect < numberOfAllBlocks + 1) {
         numKeysPressed.current = 0;
         alert('Try this level again :0');
